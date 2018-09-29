@@ -1,0 +1,32 @@
+rm(list = ls())
+setwd('/home/sambeet/data/kaggle/santader product recommendation/')
+library(data.table)
+library(dplyr)
+library(readr)
+library(tidyr)
+library(lubridate)
+
+data_2 = read_csv('train_ver2.csv',progress = T)
+data_2$month = month(data_2$fecha_dato)
+data_2$year = year(data_2$fecha_dato)
+data_2 = data_2 %>% filter(year == 2015)
+data_2 = data_2 %>% filter(month == 5 | month == 6)
+gc()
+
+data_1 = gather(data_2,key=product,value=holding,ind_ahor_fin_ult1:ind_recibo_ult1)
+data_1 = data_1 %>% group_by(ncodpers) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 48) %>% select(-count)
+data_1 = data_1 %>% replace_na(replace = list(holding = 0))
+min_month = min(data_1$month)
+data_1$month = ifelse(data_1$month == min_month,'prev_month','current_month')
+data_1 = spread(data = data_1,key = month,value = holding)
+
+n01 = function(x){
+    if((x[1] == 0) & (x[2] == 1)){
+        return(c(0,1))
+    }else{
+        return(c(0,0))
+    }
+}
+
+data_12 = data_1 %>% group_by(ncodpers,product) %>% arrange(month) %>% mutate(keep = n01(holding))
+data_12
